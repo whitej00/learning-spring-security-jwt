@@ -1,6 +1,8 @@
 package com.example.testsecurityjwt.jwt;
 
 import com.example.testsecurityjwt.dto.CustomUserDetails;
+import com.example.testsecurityjwt.dto.RefreshTokenDto;
+import com.example.testsecurityjwt.service.RefreshTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,15 +16,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import java.util.Collection;
 import java.util.Iterator;
 
-public class LoginFilter extends UsernamePasswordAuthenticationFilter {
+
+public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
-    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil){
-
+    public CustomAuthenticationFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Override
@@ -39,7 +43,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         return authenticationManager.authenticate(authToken);
     }
 
-    //로그인 성공시 실행 하는 메소드 (여기서 JWT를 발급 하면 됨)
+    // case login successful (create jwt)
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) {
 
@@ -53,12 +57,24 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         String role = auth.getAuthority();
 
-        String token = jwtUtil.createJwt(username, role, 60*60*10L);
+        System.out.println("role = " + role);
 
-        response.addHeader("Authorization", "Bearer " + token);
+        String accessToken = "Bearer " + jwtUtil.createAccessToken(username, role, 60*60*10L);
+        String refreshToken = "Bearer " + jwtUtil.createRefreshToken(username, 60*60*10000L);
+
+        RefreshTokenDto dto = RefreshTokenDto.builder()
+                .username(username)
+                .refreshToken(refreshToken)
+                .build();
+
+        refreshTokenService.deleteAllByUsername(username);
+        refreshTokenService.save(dto);
+
+        response.addHeader("Refresh", refreshToken);
+        response.addHeader("Access", accessToken);
     }
 
-    //로그인 실패시 실행 하는 메소드
+    // case login unsuccessful
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
 

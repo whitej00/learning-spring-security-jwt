@@ -4,27 +4,23 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Data
-@NoArgsConstructor
-public class UserEntity {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class RefreshToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     private String username;
-    private String password;
-    private String role;
+    private String refreshToken;
 
     @Builder
-    public UserEntity(String username, String password, String role) {
+    public RefreshToken(String username, String refreshToken) {
         this.username = username;
-        this.password = password;
-        this.role = role;
+        this.refreshToken = refreshToken;
     }
 }

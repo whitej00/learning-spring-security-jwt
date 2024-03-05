@@ -1,6 +1,6 @@
 package com.example.testsecurityjwt.service;
 
-import com.example.testsecurityjwt.Entity.UserEntity;
+import com.example.testsecurityjwt.Entity.User;
 import com.example.testsecurityjwt.dto.JoinDto;
 import com.example.testsecurityjwt.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class JoinService {
             return;
         }
 
-        userRepository.save(UserEntity.builder()
+        userRepository.save(User.builder()
                 .username(username)
                 .password(bCryptPasswordEncoder.encode(password))
                 .role("ROLE_ADMIN")

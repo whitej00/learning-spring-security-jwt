@@ -4,14 +4,16 @@ import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class JoinDto {
+public class UserDto {
 
     private String username;
     private String password;
+    private String role;
 
     @Builder
-    public JoinDto(String username, String password) {
+    public UserDto(String username, String password, String role) {
         this.username = username;
         this.password = password;
+        this.role = role;
     }
 }

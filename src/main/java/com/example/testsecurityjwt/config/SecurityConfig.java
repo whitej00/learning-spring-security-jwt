@@ -2,8 +2,10 @@ package com.example.testsecurityjwt.config;
 
 import com.example.testsecurityjwt.jwt.JWTFilter;
 import com.example.testsecurityjwt.jwt.JWTUtil;
-import com.example.testsecurityjwt.jwt.LoginFilter;
+import com.example.testsecurityjwt.jwt.CustomAuthenticationFilter;
+import com.example.testsecurityjwt.service.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,26 +23,19 @@ import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    // AuthenticationManager가 인자로 받을 AuthenticationConfiguraion 객체 생성자 주입
     private final AuthenticationConfiguration authenticationConfiguration;
+    private final RefreshTokenService refreshTokenService;
     private final JWTUtil jwtUtil;
 
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil) {
-
-        this.authenticationConfiguration = authenticationConfiguration;
-        this.jwtUtil = jwtUtil;
-    }
-
-    // AuthenticationManager Bean 등록
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
 
         return configuration.getAuthenticationManager();
     }
 
-    // BCryptPasswordEncoder Bean 등록
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
 
@@ -70,35 +65,29 @@ public class SecurityConfig {
                     }
                 }));
 
-        //csrf disable
         http
                 .csrf(auth -> auth.disable());
 
-        //From 로그인 방식 disable
         http
                 .formLogin(auth -> auth.disable());
 
-        //http basic 인증 방식 disable
         http
                 .httpBasic(auth -> auth.disable());
 
-        //경로별 인가 작업
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/", "/join").permitAll()
+                        .requestMatchers("/", "/v1/join", "/login", "/v1/logout", "/v1/refresh").permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated());
 
         http
-                .addFilterAt(new JWTFilter(jwtUtil), LoginFilter.class);
+                .addFilterAt(new JWTFilter(jwtUtil), CustomAuthenticationFilter.class);
 
-        //필터 추가 LoginFilter()는 인자를 받음 (AuthenticationManager() 메소드에 authenticationConfiguration 객체를 넣어야 함) 따라서 등록 필요
         http
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class);
+                .addFilterAt(new CustomAuthenticationFilter(authenticationManager(authenticationConfiguration), jwtUtil, refreshTokenService), UsernamePasswordAuthenticationFilter.class);
 
-        //세션 설정
         http
-                .sessionManagement((session) -> session
+                .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
 
