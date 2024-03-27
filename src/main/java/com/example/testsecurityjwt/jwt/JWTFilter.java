@@ -2,6 +2,7 @@ package com.example.testsecurityjwt.jwt;
 
 import com.example.testsecurityjwt.Entity.User;
 import com.example.testsecurityjwt.dto.CustomUserDetails;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 public class JWTFilter extends OncePerRequestFilter {
 
@@ -25,25 +27,40 @@ public class JWTFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        String access = request.getHeader("Access");
+        // Bearer + accessToken
+        String token = request.getHeader("Access");
 
-        if (access == null || !access.startsWith("Bearer ")) {
+        if (token == null || !token.startsWith("Bearer ")) {
 
-            System.out.println("access token null");
             filterChain.doFilter(request, response);
 
             return;
         }
 
-        System.out.println("authorization now");
+        // accessToken
+        String accessToken = jwtUtil.getJwtToken(token);
 
-        String accessToken = jwtUtil.getToken(access);
+        // valid expiration time
+        try {
+            jwtUtil.isExpired(accessToken);
+        } catch (ExpiredJwtException e){
 
-        if (jwtUtil.isExpired(accessToken)) {
+            PrintWriter writer = response.getWriter();
+            writer.print("access token expired");
 
-            System.out.println("access token expired");
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
 
+        // valid if token is accessToken
+        String category = jwtUtil.getCategory(accessToken);
+
+        if (!category.equals("access")) {
+
+            PrintWriter writer = response.getWriter();
+            writer.print("this token is not accessToken");
+
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
@@ -59,7 +76,6 @@ public class JWTFilter extends OncePerRequestFilter {
         CustomUserDetails customUserDetails = new CustomUserDetails(userEntity);
 
         Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
-
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);

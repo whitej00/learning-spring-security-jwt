@@ -6,6 +6,7 @@ import com.example.testsecurityjwt.service.RefreshTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -59,8 +60,8 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
 
         System.out.println("role = " + role);
 
-        String accessToken = "Bearer " + jwtUtil.createAccessToken(username, role, 60*60*10L);
-        String refreshToken = "Bearer " + jwtUtil.createRefreshToken(username, 60*60*10000L);
+        String accessToken = jwtUtil.createAccessToken(jwtUtil.ACCESS_TOKEN_CATEGORY, username, role, jwtUtil.ACCESS_TOKEN_EXPIRED_MS);
+        String refreshToken = jwtUtil.createRefreshToken(jwtUtil.REFRESH_TOKEN_CATEGORY, username, jwtUtil.REFRESH_TOKEN_EXPIRED_MS);
 
         RefreshTokenDto dto = RefreshTokenDto.builder()
                 .username(username)
@@ -72,12 +73,13 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
 
         response.addHeader("Refresh", refreshToken);
         response.addHeader("Access", accessToken);
+        response.setStatus(HttpStatus.OK.value());
     }
 
     // case login unsuccessful
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
 
-        response.setStatus(401);
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
     }
 }

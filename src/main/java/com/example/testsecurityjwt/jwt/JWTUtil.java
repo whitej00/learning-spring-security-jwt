@@ -14,15 +14,25 @@ import java.util.Date;
 public class JWTUtil {
 
     private SecretKey secretKey;
+    public final String ACCESS_TOKEN_CATEGORY = "access";
+    public final String REFRESH_TOKEN_CATEGORY = "refresh";
+
+    public final Long ACCESS_TOKEN_EXPIRED_MS = 15 * 1000L;
+    public final Long REFRESH_TOKEN_EXPIRED_MS = 15 * 1000 * 1000L;
 
     public JWTUtil(@Value("${spring.jwt.secret}")String secret) {
 
         this.secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
     }
 
-    public String getToken(String token){
+    public String getJwtToken(String token){
 
         return token.split(" ")[1];
+    }
+
+    public String getCategory(String token){
+
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("category", String.class);
     }
 
     public String getUsername(String token) {
@@ -40,9 +50,10 @@ public class JWTUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration().before(new Date());
     }
 
-    public String createAccessToken(String username, String role, Long expiredMs) {
+    public String createAccessToken(String category, String username, String role, Long expiredMs) {
 
-        return Jwts.builder()
+        return "Bearer " + Jwts.builder()
+                .claim("category", category)
                 .claim("username", username)
                 .claim("role", role)
                 .issuedAt(new Date(System.currentTimeMillis()))
@@ -51,9 +62,10 @@ public class JWTUtil {
                 .compact();
     }
 
-    public String createRefreshToken(String username, Long expiredMs) {
+    public String createRefreshToken(String category, String username, Long expiredMs) {
 
-        return Jwts.builder()
+        return "Bearer " + Jwts.builder()
+                .claim("category", category)
                 .claim("username", username)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))

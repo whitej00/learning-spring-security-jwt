@@ -43,7 +43,7 @@ public class RefreshTokenService {
     @Transactional
     public void logoutProcess(HttpServletRequest request){
 
-        String refreshToken = jwtUtil.getToken(
+        String refreshToken = jwtUtil.getJwtToken(
                 request.getHeader("Refresh")
         );
 
@@ -55,7 +55,7 @@ public class RefreshTokenService {
 
     public void refresh(HttpServletRequest request, HttpServletResponse response){
 
-        String refreshToken = jwtUtil.getToken(
+        String refreshToken = jwtUtil.getJwtToken(
                 request.getHeader("Refresh")
         );
 
@@ -76,13 +76,13 @@ public class RefreshTokenService {
 
         RefreshTokenDto dto = optional.get();
 
-        String refreshTokenDb = jwtUtil.getToken(
+        String refreshTokenDb = jwtUtil.getJwtToken(
                 dto.getRefreshToken()
         );
 
         if (refreshToken.equals(refreshTokenDb)) {
             UserDto userDto = userRepository.findByUsername(username);
-            String accessToken = jwtUtil.createAccessToken(username, userDto.getRole(), 60 * 60 * 10L);
+            String accessToken = jwtUtil.createAccessToken(jwtUtil.ACCESS_TOKEN_CATEGORY, username, userDto.getRole(), jwtUtil.ACCESS_TOKEN_EXPIRED_MS);
 
             response.addHeader("Access", "Bearer " + accessToken);
         }
